@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en" class="light h-full w-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SETU-NER | AI Smart Logistics & Accessibility Intelligence Platform (SIH26002)</title>
+  <meta name="description" content="AI-Based Smart Logistics & Accessibility Intelligence Platform for North Eastern Region (SIH26002). MDoNER / NEC Logistics Grid with satellite terrain visualization.">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            outfit: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Inter, Outfit, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+  <!-- Chart.js for District Dashboard -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <link rel="stylesheet" href="src/styles.css">
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans antialiased overflow-hidden h-screen w-screen flex flex-col transition-colors duration-300">
+
+  <!-- TOP GOVT HEADER BAR -->
+  <header class="h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/80 px-4 flex items-center justify-between z-30 relative shrink-0 shadow-sm">
+    
+    <!-- Branding -->
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-600 via-teal-600 to-emerald-600 p-0.5 shadow-md flex items-center justify-center">
+        <div class="w-full h-full rounded-full bg-white dark:bg-slate-900 flex items-center justify-center">
+          <i class="fa-solid fa-earth-asia text-teal-600 dark:text-teal-400 text-lg"></i>
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <span class="font-outfit font-extrabold text-lg tracking-tight text-slate-900 dark:text-white">SETU-NER</span>
+          <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">सेतु एनईआर • SIH26002</span>
+        </div>
+        <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Ministry of Development of North Eastern Region (MDoNER / NEC Grid)</p>
+      </div>
+    </div>
+
+    <!-- Right Header Controls -->
+    <div class="flex items-center space-x-2.5">
+      <button id="btnEmergencySos" class="bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md shadow-rose-500/20 flex items-center space-x-1.5 transition active:scale-95">
+        <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>Emergency SOS</span>
+      </button>
+
+      <button id="btnSimMode" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md shadow-amber-500/20 flex items-center space-x-1 transition active:scale-95">
+        <i class="fa-solid fa-bolt"></i>
+        <span>Simulation</span>
+      </button>
+
+      <button id="btnVoiceMenu" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md shadow-blue-500/20 flex items-center space-x-1 transition active:scale-95">
+        <i class="fa-solid fa-microphone"></i>
+        <span>Voice</span>
+      </button>
+
+      <button id="btnMapAiToggle" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md shadow-purple-500/20 flex items-center space-x-1 transition active:scale-95">
+        <i class="fa-solid fa-robot"></i>
+        <span>AI Copilot</span>
+      </button>
+
+      <!-- Real-Time IST Clock -->
+      <div class="hidden xl:flex items-center px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-slate-700 dark:text-slate-300">
+        <i class="fa-solid fa-clock text-slate-400 mr-1.5"></i>
+        <span id="istClockDisplay">14:40:00 IST</span>
+      </div>
+
+      <!-- User Badge & Language Selector -->
+      <div class="flex items-center space-x-1.5 border-l border-slate-200 dark:border-slate-800 pl-2.5">
+        <div class="w-7 h-7 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shadow">
+          AG
+        </div>
+        <select id="langSelect" class="bg-transparent text-xs font-semibold text-slate-600 dark:text-slate-300 focus:outline-none cursor-pointer">
+          <option value="EN">EN</option>
+          <option value="HI">HI</option>
+          <option value="AS">AS</option>
+        </select>
+      </div>
+
+      <!-- Theme Switcher Pill -->
+      <button id="themeToggleBtn" class="bg-amber-100 dark:bg-slate-800 text-slate-800 dark:text-amber-300 px-3 py-1 rounded-full text-xs font-bold border border-amber-300 dark:border-slate-700 flex items-center space-x-1 hover:bg-amber-200 dark:hover:bg-slate-700 transition">
+        <i class="fa-solid fa-sun" id="themeIcon"></i>
+        <span id="themeText">Light</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- BODY CONTENT AREA (Left Vertical Navigation Sidebar + Full-Page Content Views) -->
+  <div class="relative flex-1 w-full h-[calc(100vh-4rem)] flex overflow-hidden">
+
+    <!-- LEFT VERTICAL NAVIGATION SIDEBAR -->
+    <aside class="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800/80 flex flex-col shrink-0 z-20 overflow-y-auto scrollbar-thin">
+      
+      <div class="p-4 space-y-6">
+        
+        <!-- SECTION 1: INTELLIGENCE & MONITORING -->
+        <div class="space-y-2">
+          <span class="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block px-2">INTELLIGENCE & MONITORING</span>
+          
+          <div class="space-y-1">
+            <button data-feat="f1" class="feat-nav-btn active w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition bg-indigo-50 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400">
+              <span class="flex items-center space-x-2.5">
+                <i class="fa-solid fa-map text-emerald-500"></i>
+                <span>1. Live Accessibility Map</span>
+              </span>
+              <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">LIVE</span>
+            </button>
+
+            <button data-feat="f2" class="feat-nav-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <span class="flex items-center space-x-2.5">
+                <i class="fa-solid fa-bell text-amber-500"></i>
+                <span>2. Predictive Disruption</span>
+              </span>
+              <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">ALERT</span>
+            </button>
+
+            <button data-feat="f3" class="feat-nav-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <span class="flex items-center space-x-2.5">
+                <i class="fa-solid fa-route text-indigo-500"></i>
+                <span>3. AI Route Optimizer</span>
+              </span>
+              <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">DIJKSTRA</span>
+            </button>
+
+            <button data-feat="f4" class="feat-nav-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <span class="flex items-center space-x-2.5">
+                <i class="fa-solid fa-users text-cyan-500"></i>
+                <span>4. Crowd Trust Score</span>
+              </span>
+            </button>
+
+            <button data-feat="f5" class="feat-nav-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <span class="flex items-center space-x-2.5">
+                <i class="fa-solid fa-camera text-purple-500"></i>
+                <span>5. Vision AI Photo</span>
+              </span>
+              <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">AI</span>
+            </button>
+
+            <button data-feat="gpstracking" class="feat-nav-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <span class="flex items-center space-x-2.5">
+                <i class="fa-solid fa-truck-moving text-emerald-500"></i>
+                <span>GPS Cargo Tracking</span>
+              </span>
+              <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">GPS</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- SECTION 2: RESILIENCE & TACTICAL LOGISTICS -->
+        <div class="space-y-2">
+          <span class="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block px-2">TACTICAL LOGISTICS</span>
+          
+          <div class="space-y-1">
+            <button data-feat="f6" class="feat-nav-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <span class="flex items-center space-x-2.5">
+                <i class="fa-solid fa-comment-sms text-sky-500"></i>
+                <span>6. SMS & IVR Access</span>
+              </span>
+            </button>
+
+            <button data-feat="f7" class="feat-nav-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <span class="flex items-center space-x-2.5">
+                <i class="fa-solid fa-tower-cell text-indigo-500"></i>
+                <span>7. Bluetooth Mesh Relay</span>
+              </span>
+              <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">P2P</span>
+            </button>
+
+            <button data-feat="f8" class="feat-nav-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <span class="flex items-center space-x-2.5">
+                <i class="fa-solid fa-wheelchair text-rose-500"></i>
+                <span>8. Vulnerable Registry</span>
+              </span>
+            </button>
+
+            <button data-feat="f9" class="feat-nav-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <span class="flex items-center space-x-2.5">
+                <i class="fa-solid fa-hand-holding-hand text-teal-500"></i>
+                <span>9. Volunteer Pool</span>
+              </span>
+            </button>
+
+            <button data-feat="f10" class="feat-nav-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+              <span class="flex items-center space-x-2.5">
+                <i class="fa-solid fa-campground text-cyan-500"></i>
+                <span>10. Relief Camps & Broadcast</span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- MAIN FULL-PAGE WORKSPACE CANVAS AREA -->
+    <main class="flex-1 bg-slate-50 dark:bg-slate-950 p-4 overflow-y-auto flex flex-col space-y-4 relative">
+      
+      <!-- Top Title Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Integrated GIS & GPS Tracking Grid</span>
+            <span class="text-xs text-slate-400 italic">"Real-time North Eastern Region Accessibility"</span>
+          </div>
+          <h1 id="activePageTitle" class="font-outfit font-extrabold text-xl sm:text-2xl text-slate-900 dark:text-white tracking-tight mt-0.5">
+            1. Live Accessibility GIS Map & Highway Risk Index
+          </h1>
+        </div>
+
+        <div class="flex items-center space-x-2 shrink-0">
+          <button id="btnStateMatrix" class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-md flex items-center space-x-1.5 transition hover:brightness-110 active:scale-95">
+            <i class="fa-solid fa-chart-column"></i>
+            <span>District Matrix</span>
+          </button>
+          <button id="btnMapAiToggle" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-md flex items-center space-x-1 transition">
+            <i class="fa-solid fa-robot"></i>
+            <span>AI Assistant</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- FULL-PAGE FEATURE STACK -->
+      <div class="flex-1 relative w-full h-full min-h-[600px] flex flex-col">
+
+        <!-- FEATURE 1: FULL-PAGE LIVE GIS ACCESSIBILITY MAP -->
+        <div id="page-f1" class="page-view flex-1 w-full h-full flex flex-col space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm text-xs">
+            <div class="flex items-center space-x-2 flex-wrap gap-y-2">
+              <!-- Search Bar -->
+              <div class="relative">
+                <input id="gisSearchInput" type="text" placeholder="Search road, district, village..." class="w-48 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500">
+                <button id="gisSearchBtn" class="absolute right-2 top-1.5 text-slate-400 hover:text-indigo-500"><i class="fa-solid fa-magnifying-glass"></i></button>
+              </div>
+
+              <!-- District Filter Dropdown -->
+              <select id="districtFilterSelect" class="bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 font-medium text-slate-800 dark:text-slate-200">
+                <option value="ALL">All NER Districts</option>
+                <option value="kamrup">Kamrup Metro (Guwahati)</option>
+                <option value="khasi">East Khasi Hills (Shillong)</option>
+                <option value="jaintia">West Jaintia Hills</option>
+                <option value="cachar">Cachar (Silchar)</option>
+                <option value="tripura">West Tripura (Agartala)</option>
+                <option value="kohima">Kohima (Nagaland)</option>
+                <option value="imphal">Imphal West (Manipur)</option>
+                <option value="aizawl">Aizawl (Mizoram)</option>
+                <option value="papumpare">Papum Pare (Itanagar)</option>
+                <option value="gangtok">East Sikkim (Gangtok)</option>
+              </select>
+
+              <!-- Reset to NER Bounding Box -->
+              <button id="btnResetNerView" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold px-3 py-1.5 rounded-xl transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-expand text-indigo-500"></i>
+                <span>Reset to NER</span>
+              </button>
+
+              <!-- Locate Me Button -->
+              <button id="btnLocateMe" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold px-3 py-1.5 rounded-xl transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-location-crosshairs text-emerald-500"></i>
+                <span>Locate Me</span>
+              </button>
+            </div>
+
+            <div class="flex items-center space-x-2">
+              <span class="font-bold text-slate-700 dark:text-slate-200">Tiles:</span>
+              <div class="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 font-semibold text-slate-700 dark:text-slate-300">
+                <button id="mapStyleOverview" class="map-style-btn active px-2.5 py-1 rounded-lg bg-indigo-600 text-white">Overview</button>
+                <button id="mapStyleSatellite" class="map-style-btn px-2.5 py-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700">Satellite</button>
+                <button id="mapStyleTopo" class="map-style-btn px-2.5 py-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700">Topo</button>
+              </div>
+              <button id="recalcRiskBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1.5 rounded-xl transition shadow flex items-center space-x-1.5">
+                <i class="fa-solid fa-rotate"></i>
+                <span>Recalculate</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1 h-full min-h-[500px]">
+            <!-- Leaflet GIS Map Canvas (3 Cols) -->
+            <div class="lg:col-span-3 h-full min-h-[450px] relative rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl bg-slate-900">
+              <div id="map" class="absolute inset-0 z-0 bg-slate-950"></div>
+
+              <!-- COMMAND CENTER OVERLAY: LIVE GIS COUNTERS & LAYER FILTERS -->
+              <div class="absolute top-4 left-4 z-10 flex flex-col space-y-2 pointer-events-auto max-w-xs">
+                <!-- Live KPI Counter Overlay -->
+                <div class="bg-slate-900/90 backdrop-blur border border-slate-800 rounded-2xl p-3 shadow-2xl text-white space-y-2">
+                  <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                    <span class="font-outfit font-extrabold text-xs text-emerald-400 uppercase tracking-wider flex items-center space-x-1.5">
+                      <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span>NER Live Command Status</span>
+                    </span>
+                    <span id="wsSyncStatus" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">WS LIVE</span>
+                  </div>
+                  <div class="grid grid-cols-3 gap-1 text-center font-mono text-[10px]">
+                    <div class="bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+                      <span class="text-emerald-400 font-bold block text-xs" id="kpiSafe">--</span>
+                      <span class="text-[9px] text-slate-400">Safe</span>
+                    </div>
+                    <div class="bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+                      <span class="text-amber-400 font-bold block text-xs" id="kpiRisky">--</span>
+                      <span class="text-[9px] text-slate-400">Risky</span>
+                    </div>
+                    <div class="bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+                      <span class="text-rose-500 font-bold block text-xs" id="kpiBlocked">--</span>
+                      <span class="text-[9px] text-slate-400">Blocked</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- JUDGE HACKATHON DEMO CONTROL CENTER -->
+                <div class="bg-gradient-to-r from-slate-900/95 via-indigo-950/95 to-slate-900/95 backdrop-blur border border-indigo-500/40 rounded-2xl p-3 shadow-2xl text-white space-y-2">
+                  <div class="flex items-center justify-between border-b border-indigo-500/30 pb-1">
+                    <span class="font-outfit font-extrabold text-[10px] text-amber-400 uppercase tracking-widest flex items-center space-x-1">
+                      <i class="fa-solid fa-gamepad"></i>
+                      <span>Judge Demo Control Center</span>
+                    </span>
+                    <span class="text-[9px] font-mono text-emerald-400 font-bold">REAL DB/WS</span>
+                  </div>
+                  
+                  <div class="grid grid-cols-2 gap-1.5 text-[10px]">
+                    <button id="demoSimLandslideBtn" class="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold p-1.5 rounded-xl transition shadow flex items-center justify-center space-x-1">
+                      <i class="fa-solid fa-hill-rockslide"></i>
+                      <span>Simulate Landslide</span>
+                    </button>
+                    <button id="demoSimRainBtn" class="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold p-1.5 rounded-xl transition shadow flex items-center justify-center space-x-1">
+                      <i class="fa-solid fa-cloud-showers-heavy"></i>
+                      <span>Simulate Heavy Rain</span>
+                    </button>
+                    <button id="demoSimVehicleBtn" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold p-1.5 rounded-xl transition shadow flex items-center justify-center space-x-1">
+                      <i class="fa-solid fa-truck-fast"></i>
+                      <span>Start GPS Vehicle</span>
+                    </button>
+                    <button id="demoResolveIncBtn" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold p-1.5 rounded-xl transition shadow flex items-center justify-center space-x-1">
+                      <i class="fa-solid fa-circle-check"></i>
+                      <span>Resolve Incident</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- GIS Layer Toggles -->
+                <div class="bg-slate-900/90 backdrop-blur border border-slate-800 rounded-2xl p-3 shadow-2xl text-white space-y-1.5 text-[11px]">
+                  <span class="font-bold text-[10px] text-slate-400 uppercase tracking-wider block">Layer Filters</span>
+                  <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="chkFilterRoads" checked class="accent-indigo-500 rounded">
+                    <span>Highways & Risk Index</span>
+                  </label>
+                  <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="chkFilterIncidents" checked class="accent-rose-500 rounded">
+                    <span>Incidents & Disruption</span>
+                  </label>
+                  <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="chkFilterVehicles" checked class="accent-emerald-500 rounded">
+                    <span>GPS Telemetry Vehicles</span>
+                  </label>
+                  <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="chkFilterHazards" checked class="accent-amber-500 rounded">
+                    <span>Flood / Landslide Polygons</span>
+                  </label>
+                </div>
+              </div>
+              
+              <!-- GIS LEGEND OVERLAY -->
+              <div class="absolute top-4 right-4 z-10 flex flex-col space-y-2 pointer-events-auto">
+                <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur border border-slate-300 dark:border-slate-700 rounded-2xl p-3 shadow-2xl space-y-2 w-48">
+                  <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1">
+                    <span class="font-outfit font-extrabold text-[11px] uppercase tracking-wider text-slate-800 dark:text-slate-100">GIS Risk Classification</span>
+                  </div>
+                  <div class="space-y-1.5 font-mono text-[10px]">
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-600 dark:text-slate-300 font-semibold">0 - 30 SAFE</span>
+                      <span class="w-7 h-2 rounded-full bg-[rgb(34,197,94)]"></span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-600 dark:text-slate-300 font-semibold">31 - 70 MODERATE</span>
+                      <span class="w-7 h-2 rounded-full bg-[rgb(245,158,11)]"></span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-600 dark:text-slate-300 font-semibold">71 - 100 BLOCKED</span>
+                      <span class="w-7 h-2 rounded-full bg-[rgb(239,68,68)]"></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur border border-slate-200 dark:border-slate-800 rounded-2xl p-1 shadow-2xl flex flex-col space-y-1 self-end">
+                  <button id="mapZoomIn" class="w-8 h-8 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-plus"></i>
+                  </button>
+                  <button id="mapZoomOut" class="w-8 h-8 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-minus"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Highway Risk Index Sidebar (1 Col) -->
+            <div class="lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-xl flex flex-col space-y-3 overflow-hidden">
+              <div class="border-b border-slate-200 dark:border-slate-800 pb-2">
+                <h3 class="font-outfit font-bold text-sm text-slate-900 dark:text-white">Highway Risk Index</h3>
+                <p class="text-[11px] text-slate-500">Live risk scores based on rainfall & terrain susceptibility.</p>
+              </div>
+              <div id="roadRiskList" class="flex-1 space-y-2 overflow-y-auto scrollbar-thin pr-1"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FEATURE 2: PREDICTIVE DISRUPTION ALERTS (Full Page) -->
+        <div id="page-f2" class="page-view hidden flex-1 w-full h-full flex flex-col space-y-4">
+          <div class="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 border border-amber-500/30 rounded-3xl p-6 shadow-xl space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs font-mono font-bold text-amber-500 uppercase tracking-widest block">AI Early Warning System</span>
+                <h2 class="font-outfit font-extrabold text-2xl text-slate-900 dark:text-white">Predictive Route Disruption Engine</h2>
+              </div>
+              <button id="runPredictiveCheckBtn" class="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-extrabold text-xs px-5 py-2.5 rounded-2xl shadow-lg flex items-center space-x-2">
+                <i class="fa-solid fa-bolt"></i>
+                <span>Run 6–12h Forecast Check</span>
+              </button>
+            </div>
+            <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-w-3xl">
+              Monitors real-time monsoon rainfall forecasts against historical landslide & flash flood terrain susceptibility dataset. Triggers early alerts 6–12 hours prior to physical road collapses to prevent vehicles from entering danger corridors.
+            </p>
+          </div>
+
+          <div id="predictiveAlertLog" class="p-4 bg-slate-950 text-amber-300 font-mono text-xs rounded-2xl border border-slate-800 shadow-xl leading-relaxed hidden"></div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-lg space-y-2">
+              <span class="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 font-bold flex items-center justify-center text-sm">NH06</span>
+              <h4 class="font-outfit font-bold text-slate-900 dark:text-white">Jaintia Hills Landslide Corridor</h4>
+              <p class="text-xs text-slate-500">Forecast Rainfall: 92mm/6h (Threshold: 60mm). Risk status flagged RED 4 hours prior.</p>
+            </div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-lg space-y-2">
+              <span class="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 font-bold flex items-center justify-center text-sm">NH29</span>
+              <h4 class="font-outfit font-bold text-slate-900 dark:text-white">Kohima Sinking Zone</h4>
+              <p class="text-xs text-slate-500">Continuous soil movement detected. Speed advisory enforced automatically.</p>
+            </div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-lg space-y-2">
+              <span class="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 font-bold flex items-center justify-center text-sm">NH37</span>
+              <h4 class="font-outfit font-bold text-slate-900 dark:text-white">Kaziranga Flood Bypass</h4>
+              <p class="text-xs text-slate-500">Brahmaputra water levels stable. Route clear for essential freight movements.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- FEATURE 3: AI ROUTE OPTIMIZER - GOOGLE MAPS STYLE (Full Page) -->
+        <div id="page-f3" class="page-view hidden flex-1 w-full h-full flex flex-col space-y-3">
+          
+          <!-- Google Maps Top Search & Transport Mode Bar -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 shadow-md flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div class="flex items-center space-x-2 flex-wrap gap-y-2">
+              
+              <!-- Mode Travel Badges (Driving, Truck Logistics, Emergency Ambulance) -->
+              <div class="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 font-bold text-slate-700 dark:text-slate-300">
+                <button id="modeDriveBtn" class="route-mode-btn active px-3 py-1.5 rounded-lg bg-indigo-600 text-white flex items-center space-x-1.5 transition">
+                  <i class="fa-solid fa-car"></i>
+                  <span>Drive</span>
+                </button>
+                <button id="modeTruckBtn" class="route-mode-btn px-3 py-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center space-x-1.5 transition">
+                  <i class="fa-solid fa-truck-moving"></i>
+                  <span>Heavy Freight</span>
+                </button>
+                <button id="modeEmergencyBtn" class="route-mode-btn px-3 py-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center space-x-1.5 transition">
+                  <i class="fa-solid fa-truck-medical text-rose-500"></i>
+                  <span>Emergency SOS</span>
+                </button>
+              </div>
+
+              <!-- Origin & Destination Hub Selectors -->
+              <div class="flex items-center space-x-2">
+                <div class="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                  <span class="font-bold text-slate-500 text-[10px]">A:</span>
+                  <select id="originSelect" class="bg-transparent font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"></select>
+                </div>
+
+                <button id="swapOriginDestBtn" class="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition">
+                  <i class="fa-solid fa-arrows-rotate"></i>
+                </button>
+
+                <div class="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                  <span class="font-bold text-slate-500 text-[10px]">B:</span>
+                  <select id="destSelect" class="bg-transparent font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"></select>
+                </div>
+              </div>
+
+              <!-- Cargo Type Selection -->
+              <div class="hidden xl:flex items-center space-x-1 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5">
+                <span class="text-slate-400 font-bold text-[10px]">CARGO:</span>
+                <select id="cargoSelect" class="bg-transparent font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer">
+                  <option value="general">Standard Cargo</option>
+                  <option value="medical">Medical / Hospital Priority</option>
+                  <option value="heavy_relief">Heavy Relief (Bridge Caps)</option>
+                </select>
+              </div>
+
+              <button id="calcRouteBtn" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold px-4 py-1.5 rounded-xl shadow-md flex items-center space-x-1.5 transition">
+                <i class="fa-solid fa-directions"></i>
+                <span>Get Directions</span>
+              </button>
+            </div>
+
+            <!-- Route Quick Legend -->
+            <div class="flex items-center space-x-3 text-[11px] font-semibold">
+              <div class="flex items-center space-x-1.5">
+                <span class="w-3 h-3 rounded-full bg-sky-400 shadow-sm"></span>
+                <span class="text-slate-700 dark:text-slate-300">Fastest Safest Route</span>
+              </div>
+              <div class="flex items-center space-x-1.5">
+                <span class="w-3 h-3 rounded-full bg-amber-500 border border-dashed border-amber-300"></span>
+                <span class="text-slate-700 dark:text-slate-300">Alternate Detour</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Google Maps Style Layout: Left Directions Panel + Right Large GIS Map -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 h-full min-h-[500px]">
+            
+            <!-- Left Side Directions & Route Cards Panel -->
+            <div class="lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-xl flex flex-col space-y-4 overflow-hidden">
+              
+              <!-- Primary Safest Route Summary Card -->
+              <div class="bg-gradient-to-br from-sky-500/10 via-indigo-500/10 to-blue-600/10 border border-sky-500/30 p-4 rounded-2xl space-y-3 shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <span class="text-[10px] font-mono font-bold text-sky-500 uppercase tracking-widest block">RECOMMENDED ROUTE</span>
+                    <h4 id="googleRouteHeaderTitle" class="font-outfit font-extrabold text-base text-slate-900 dark:text-white">Guwahati to Agartala</h4>
+                  </div>
+                  <span id="routeETA" class="text-xl font-outfit font-extrabold text-emerald-600 dark:text-emerald-400">-- hrs</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-200 dark:border-slate-800">
+                  <div class="flex items-center space-x-1.5">
+                    <i class="fa-solid fa-road text-slate-400"></i>
+                    <span>Distance: <strong id="routeDist" class="text-slate-800 dark:text-slate-200">-- km</strong></span>
+                  </div>
+                  <div class="flex items-center space-x-1.5">
+                    <i class="fa-solid fa-shield-halved text-amber-400"></i>
+                    <span>Avg Risk: <strong id="routeRisk" class="text-amber-500">-- / 100</strong></span>
+                  </div>
+                </div>
+
+                <div class="text-[11px] text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-slate-950/60 p-2 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                  <span>Corridor Traffic & Monsoon Risk:</span>
+                  <span id="routeTrafficBadge" class="font-mono font-bold text-emerald-500">LOW DELAY</span>
+                </div>
+              </div>
+
+              <!-- Alternate Detour Card -->
+              <div id="googleAltRouteCard" class="bg-slate-100 dark:bg-slate-950 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-1.5 text-xs">
+                <div class="flex items-center justify-between font-bold">
+                  <span class="text-amber-500 flex items-center space-x-1">
+                    <i class="fa-solid fa-diamond-turn-right"></i>
+                    <span>Alternate Detour Route</span>
+                  </span>
+                  <span id="altRouteETA" class="font-mono text-slate-700 dark:text-slate-300">-- hrs</span>
+                </div>
+                <div class="text-[11px] text-slate-500 flex justify-between">
+                  <span id="altRouteDist">Distance: -- km</span>
+                  <span>Avoids blocked mountain passes</span>
+                </div>
+              </div>
+
+              <!-- Turn-by-Turn Directions List -->
+              <div class="flex-1 flex flex-col space-y-2 overflow-hidden">
+                <h4 class="font-outfit font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center space-x-1.5">
+                  <i class="fa-solid fa-list-ol text-indigo-500"></i>
+                  <span>Turn-by-Turn Navigation Steps</span>
+                </h4>
+                <div id="routeStepsList" class="flex-1 space-y-2 overflow-y-auto scrollbar-thin pr-1">
+                  <div class="p-3 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400">
+                    Select origin and destination hubs above to calculate turn-by-turn routing steps.
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Right Large Interactive Google Maps Canvas -->
+            <div class="lg:col-span-2 h-full min-h-[450px] relative rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl bg-slate-950">
+              <div id="routeMap" class="absolute inset-0 z-0 bg-slate-950"></div>
+              
+              <!-- Map Navigation Control Overlay -->
+              <div class="absolute bottom-4 right-4 z-10 flex flex-col space-y-2 pointer-events-auto">
+                <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur border border-slate-200 dark:border-slate-800 rounded-2xl p-2 shadow-2xl flex flex-col space-y-1">
+                  <button id="routeMapCenterBtn" class="w-8 h-8 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center font-bold text-indigo-500" title="Fit Directions View">
+                    <i class="fa-solid fa-location-crosshairs"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- FEATURE 4: CROWD TRUST SCORE (Full Page) -->
+        <div id="page-f4" class="page-view hidden flex-1 w-full h-full flex flex-col space-y-4">
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-3">
+            <h2 class="font-outfit font-extrabold text-xl text-slate-900 dark:text-white">Crowdsourced Incident Trust Score Verification</h2>
+            <div class="p-3 bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800 rounded-2xl font-mono text-xs text-cyan-800 dark:text-cyan-300">
+              Formula: trust_score = base_role_weight + (nearby_confirmations * 5) + (gps_accuracy * 10) - time_decay
+            </div>
+            <div class="space-y-2 pt-2">
+              <h4 class="font-bold text-xs text-slate-700 dark:text-slate-300">Live Incident Feed & Trust Badges</h4>
+              <div id="reportsList" class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[450px] overflow-y-auto scrollbar-thin"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FEATURE 5: VISION AI PHOTO DAMAGE (Full Page) -->
+        <div id="page-f5" class="page-view hidden flex-1 w-full h-full flex flex-col space-y-4">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+              <div class="border-b border-slate-200 dark:border-slate-800 pb-3">
+                <span class="text-xs font-mono font-bold text-purple-500 uppercase tracking-wider block">Multimodal AI Inspection</span>
+                <h3 class="font-outfit font-extrabold text-lg text-slate-900 dark:text-white">Upload Incident Photo for AI Damage Assessment</h3>
+              </div>
+
+              <form id="reportForm" class="space-y-3 text-xs">
+                <div>
+                  <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Target Highway Segment</label>
+                  <select id="reportRoadSelect" class="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-2 text-xs"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Hazard Category</label>
+                    <select id="reportTypeSelect" class="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-2 text-xs">
+                      <option value="Landslide">Landslide / Mudslide</option>
+                      <option value="Bridge Damage">Bridge Structural Damage</option>
+                      <option value="Waterlogging">Flash Flood / Waterlogging</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Reporter Role Weight</label>
+                    <select id="reporterRole" class="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-2 text-xs">
+                      <option value="citizen">Citizen Volunteer (+5)</option>
+                      <option value="official">PWD Official Field Inspector (+30)</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Upload Damage Photo</label>
+                  <input type="file" id="reportPhotoInput" accept="image/*" class="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-2 text-xs">
+                </div>
+                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-extrabold py-3 rounded-2xl text-xs transition shadow-lg">
+                  Run Claude Vision AI + Perceptual Hash Check
+                </button>
+              </form>
+            </div>
+
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col justify-center items-center text-center space-y-3">
+              <div class="w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400 flex items-center justify-center text-2xl font-bold">
+                <i class="fa-solid fa-camera"></i>
+              </div>
+              <h4 class="font-outfit font-bold text-slate-900 dark:text-white">Automatic Perceptual Hash Duplicate Detection</h4>
+              <p class="text-xs text-slate-500 max-w-md">
+                Calculates image hashes to prevent duplicate upload fraud, automatically assigning severity levels (Minor, Moderate, Impassable) to update the risk graph.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- FEATURE GPS CARGO TRACKING (Full Page) -->
+        <div id="page-gpstracking" class="page-view hidden flex-1 w-full h-full flex flex-col space-y-4">
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div>
+                <span class="text-xs font-mono font-bold text-emerald-500 uppercase tracking-wider block">GPS Telemetry Grid</span>
+                <h2 class="font-outfit font-extrabold text-xl text-slate-900 dark:text-white">Essential Commodities Vehicle Tracking</h2>
+              </div>
+              <span class="px-3 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-mono font-bold rounded-full">ACTIVE GPS SATELLITE LINK</span>
+            </div>
+            <div id="gpsFleetList" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+          </div>
+        </div>
+
+        <!-- FEATURE 6: SMS & IVR ACCESS (Full Page) -->
+        <div id="page-f6" class="page-view hidden flex-1 w-full h-full flex flex-col space-y-4">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+              <h3 class="font-outfit font-bold text-lg text-slate-900 dark:text-white">SMS Shortcode Parser Webhook Sandbox</h3>
+              <div class="space-y-2 text-xs">
+                <input type="text" id="smsInput" value="BLOCK NH27 KM45 LANDSLIDE" class="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-xs font-mono">
+                <button id="parseSmsBtn" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition shadow">Parse Shortcode</button>
+              </div>
+              <div id="smsOutput" class="p-3 bg-slate-950 text-cyan-300 font-mono text-xs rounded-2xl hidden leading-relaxed"></div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+              <h3 class="font-outfit font-bold text-lg text-slate-900 dark:text-white">Toll-Free IVR Interactive Voice Response Simulator</h3>
+              <div class="grid grid-cols-3 gap-2 max-w-[240px] mx-auto text-center font-mono">
+                <button data-key="1" class="ivr-key bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 p-3 rounded-xl text-sm font-bold">1 (Report)</button>
+                <button data-key="2" class="ivr-key bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 p-3 rounded-xl text-sm font-bold">2 (Status)</button>
+                <button data-key="3" class="ivr-key bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 p-3 rounded-xl text-sm font-bold">3 (Convoy)</button>
+              </div>
+              <div id="ivrAudioDisplay" class="p-3 bg-slate-100 dark:bg-slate-950 rounded-2xl text-xs text-indigo-600 dark:text-indigo-300 flex items-center space-x-2">
+                <i class="fa-solid fa-phone-volume animate-pulse"></i>
+                <span id="ivrText">Dial 1 to file road blockage via voice prompt...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FEATURE 7: BLUETOOTH MESH RELAY (Full Page) -->
+        <div id="page-f7" class="page-view hidden flex-1 w-full h-full flex flex-col space-y-4">
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+            <h2 class="font-outfit font-extrabold text-xl text-slate-900 dark:text-white">Bluetooth BLE Mesh Gossip Relay Protocol</h2>
+            <p class="text-xs text-slate-500 max-w-2xl">
+              Simulates store-and-forward peer-to-peer relay across offline mobile devices during complete cell tower failures in remote mountain passes.
+            </p>
+            <button id="triggerMeshHopBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs px-6 py-3 rounded-2xl shadow-lg">
+              Simulate P2P BLE Relay Hop
+            </button>
+          </div>
+        </div>
+
+        <!-- FEATURE 8: VULNERABLE REGISTRY (Full Page) -->
+        <div id="page-f8" class="page-view hidden flex-1 w-full h-full flex flex-col space-y-4">
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+            <h2 class="font-outfit font-extrabold text-xl text-slate-900 dark:text-white">Vulnerable Population Evacuation Dispatch</h2>
+            <p class="text-xs text-slate-500">Cross-references pre-registered elderly, pregnant, and PwD citizens to auto-assign priority ambulances.</p>
+            <button id="optimizeDispatchBtn" class="bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs px-6 py-3 rounded-2xl shadow-lg">
+              Rank Relief Evacuation Queue
+            </button>
+          </div>
+        </div>
+
+        <!-- FEATURE 9: VOLUNTEER POOL (Full Page) -->
+        <div id="page-f9" class="page-view hidden flex-1 w-full h-full flex flex-col space-y-4">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+              <h3 class="font-outfit font-bold text-lg text-slate-900 dark:text-white">Register Community Equipment</h3>
+              <form id="volunteerRegForm" class="space-y-3 text-xs">
+                <input type="text" id="volName" placeholder="Volunteer Name" class="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-xs">
+                <select id="volType" class="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-xs">
+                  <option value="4x4 Jeep">4x4 Jeep with Winch</option>
+                  <option value="Rescue Boat">Motorised Rescue Boat</option>
+                  <option value="Tractor">Heavy Farm Tractor</option>
+                </select>
+                <button type="submit" class="w-full bg-teal-600 text-white font-extrabold py-3 rounded-2xl text-xs shadow-lg">Register Equipment</button>
+              </form>
+            </div>
+            <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-3">
+              <h3 class="font-outfit font-bold text-lg text-slate-900 dark:text-white">Registered Volunteer Equipment Pool</h3>
+              <div id="volunteerList" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FEATURE 10: RELIEF CAMPS & BROADCAST (Full Page) -->
+        <div id="page-f10" class="page-view hidden flex-1 w-full h-full flex flex-col space-y-4">
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+            <div class="flex items-center justify-between">
+              <h2 class="font-outfit font-extrabold text-xl text-slate-900 dark:text-white">Relief Camp Finder & Area Emergency Broadcast</h2>
+              <button id="sendBroadcastBtn" class="bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs px-5 py-2.5 rounded-2xl shadow-lg">
+                Push Mass Cell Broadcast
+              </button>
+            </div>
+            <div id="broadcastResultLog" class="p-3 bg-slate-950 text-rose-300 font-mono text-xs rounded-2xl hidden leading-relaxed"></div>
+            <div id="reliefCampsList" class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2"></div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- FLOATING MAP AI DRAWER (Bottom Right) -->
+  <div id="aiDrawer" class="fixed bottom-4 right-4 z-40 pointer-events-auto max-w-sm w-full hidden">
+    <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200 dark:border-slate-800 rounded-2xl p-3 shadow-2xl space-y-2">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1.5">
+        <div class="flex items-center space-x-2">
+          <div class="w-6 h-6 rounded-lg bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-xs text-white">
+            <i class="fa-solid fa-robot"></i>
+          </div>
+          <span class="font-outfit font-bold text-xs text-slate-900 dark:text-slate-100">Map AI Copilot</span>
+        </div>
+        <button id="closeAiDrawerBtn" class="text-slate-400 hover:text-slate-600 text-xs font-bold px-1.5 py-0.5">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+      <div id="aiResponseBox" class="p-2 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed max-h-24 overflow-y-auto scrollbar-thin">
+        👋 Ask me anything about NER logistics: <em>"Safest route to Agartala?"</em> or <em>"Show relief camp beds in Silchar"</em>
+      </div>
+      <form id="aiQueryForm" class="flex space-x-1.5">
+        <input type="text" id="aiQueryInput" placeholder="Ask Map AI..." class="flex-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500">
+        <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 py-1.5 rounded-lg transition text-xs">
+          <i class="fa-solid fa-paper-plane"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- DISTRICT CONNECTIVITY MATRIX MODAL (Requirement g) -->
+  <div id="districtMatrixModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center hidden p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div>
+          <h3 class="font-outfit font-extrabold text-lg text-slate-900 dark:text-white">District-Wise Connectivity Status Matrix</h3>
+          <p class="text-xs text-slate-500">Real-time logistics bottlenecks, supply chain status, and emergency routes across 18 NER districts.</p>
+        </div>
+        <button id="closeMatrixModalBtn" class="text-slate-400 hover:text-slate-600 text-sm font-bold">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs font-semibold">
+        <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl space-y-1">
+          <span class="text-slate-400 block text-[10px]">Assam (Guwahati - Tezpur)</span>
+          <span class="text-emerald-600 dark:text-emerald-400 font-bold block">OPERATIONAL</span>
+          <span class="text-[10px] text-slate-500">Logistics Flow: 94%</span>
+        </div>
+        <div class="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl space-y-1">
+          <span class="text-slate-400 block text-[10px]">Meghalaya (Shillong - Jaintia)</span>
+          <span class="text-amber-600 dark:text-amber-400 font-bold block">PARTIAL RISK</span>
+          <span class="text-[10px] text-slate-500">Rainfall Alert Active</span>
+        </div>
+        <div class="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-2xl space-y-1">
+          <span class="text-slate-400 block text-[10px]">Barak Valley (Silchar Lifeline)</span>
+          <span class="text-rose-600 dark:text-rose-400 font-bold block">SEVERED / HIGH RISK</span>
+          <span class="text-[10px] text-slate-500">Landslide NH06</span>
+        </div>
+        <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl space-y-1">
+          <span class="text-slate-400 block text-[10px]">Tripura (Agartala Corridor)</span>
+          <span class="text-emerald-600 dark:text-emerald-400 font-bold block">OPERATIONAL</span>
+          <span class="text-[10px] text-slate-500">Detour Active via NH08</span>
+        </div>
+        <div class="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl space-y-1">
+          <span class="text-slate-400 block text-[10px]">Nagaland (Dimapur - Kohima)</span>
+          <span class="text-amber-600 dark:text-amber-400 font-bold block">SINKING ZONE CAUTION</span>
+          <span class="text-[10px] text-slate-500">Speed Limit: 20km/h</span>
+        </div>
+        <div class="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-2xl space-y-1">
+          <span class="text-slate-400 block text-[10px]">Arunachal (Itanagar - Tawang)</span>
+          <span class="text-rose-600 dark:text-rose-400 font-bold block">SEVERED HIGH PASS</span>
+          <span class="text-[10px] text-slate-500">Drone Dispatcher Active</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION SCRIPTS -->
+  <script src="src/data/ner_graph.js"></script>
+  <script src="src/engine/risk_engine.js"></script>
+  <script src="src/engine/router.js"></script>
+  <script src="src/engine/vision_ai.js"></script>
+  <script src="src/engine/mesh_simulator.js"></script>
+  <script src="src/engine/dispatch.js"></script>
+  <script src="src/engine/sms_ivr.js"></script>
+  <script src="src/engine/map_ai.js"></script>
+  <script src="src/engine/community_pool.js"></script>
+  <script src="src/engine/camp_broadcast.js"></script>
+  <script src="src/app.js"></script>
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW registration issue:', err));
+      });
+    }
+  </script>
+</body>
+</html>
