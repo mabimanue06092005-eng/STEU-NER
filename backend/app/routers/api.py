@@ -509,7 +509,7 @@ def optimize_route(req: RouteOptimizeRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="No viable route available around blocked highways")
     
     # Save route calculation to DB for persistence and history tracking
-    rec = result.get("recommended_route", {})
+    rec = result
     route_db = RouteRecord(
         id=f"ROUTE-{int(datetime.datetime.utcnow().timestamp())}",
         origin=req.origin,
@@ -517,9 +517,9 @@ def optimize_route(req: RouteOptimizeRequest, db: Session = Depends(get_db)):
         vehicle_type=req.vehicle_type,
         priority=req.priority,
         geometry_json=json.dumps(rec.get("geometry", {})),
-        distance_km=rec.get("distance_km", 0.0),
+        distance_km=rec.get("totalDistance", 0.0),
         duration_minutes=rec.get("duration_minutes", 0),
-        risk_score=rec.get("risk_score", 0),
+        risk_score=rec.get("avgRisk", 0),
         risk_level=rec.get("risk_level", "LOW"),
         status="ACTIVE"
     )
@@ -544,9 +544,9 @@ def optimize_route(req: RouteOptimizeRequest, db: Session = Depends(get_db)):
         destination=req.destination,
         vehicle_type=req.vehicle_type,
         priority=req.priority,
-        recommended_distance=rec.get("distance_km", 0.0),
+        recommended_distance=rec.get("totalDistance", 0.0),
         recommended_duration=rec.get("duration_minutes", 0),
-        recommended_risk=rec.get("risk_score", 0)
+        recommended_risk=rec.get("avgRisk", 0)
     )
     db.add(hist_db)
     db.commit()
@@ -571,7 +571,7 @@ def get_route_by_id(route_id: str, db: Session = Depends(get_db)):
         "risk_score": r.risk_score,
         "risk_level": r.risk_level,
         "status": r.status,
-        "geometry": json.loads(r.geometry) if r.geometry else None,
+        "geometry": json.loads(r.geometry_json) if r.geometry_json else None,
         "segments": segments,
         "created_at": r.created_at
     }

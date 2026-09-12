@@ -89,6 +89,7 @@ class Vehicle(Base):
     current_longitude = Column(Float, nullable=False)
     destination = Column(String, nullable=True)
     status = Column(String, default="IN_TRANSIT") # NOT_STARTED, IN_TRANSIT, DELAYED, DELIVERED
+    active_route_id = Column(String, ForeignKey("routes.id"), nullable=True)
     last_updated = Column(DateTime, default=datetime.datetime.utcnow)
 
 class Delivery(Base):
