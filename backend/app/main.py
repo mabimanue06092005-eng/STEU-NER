@@ -2,7 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.db_conn import engine, Base, SessionLocal
-from app.routers import api
+from app.routers import router as api_router
 from app.database_seed import seed_database
 
 Base.metadata.create_all(bind=engine)
@@ -27,7 +27,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(api.router)
+app.include_router(api_router)
 
 @app.get("/")
 def root():
