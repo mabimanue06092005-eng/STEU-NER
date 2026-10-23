@@ -1,4 +1,7 @@
 import uvicorn
+from dotenv import load_dotenv
+load_dotenv()  # loads backend/.env if present — never commit that file (see .env.example)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.db_conn import engine, Base, SessionLocal

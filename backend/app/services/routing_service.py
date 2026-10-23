@@ -118,5 +118,5 @@ class DijkstraRouterService:
                 "coordinates": route_coords
             },
             "segments": segments,
-            "roads": [{"id": r.id, "name": r.name, "distance_km": r.distance_km, "risk_score": r.risk_score, "coords": json.loads(r.coords_json)} for r in best_path_roads]
+            "roads": [{"id": r.id, "name": r.name, "distance_km": r.distance_km, "risk_score": r.risk_score, "base_travel_time": r.base_travel_time, "bridge_load_limit": r.bridge_load_limit, "status": r.current_status, "coords": json.loads(r.coords_json)} for r in best_path_roads]
         }

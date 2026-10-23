@@ -27,8 +27,8 @@ class LocationPoint(BaseModel):
     name: Optional[str] = None
 
 class RouteOptimizeRequest(BaseModel):
-    origin: Optional[Any] = "guwahati" # Can be string ID ("guwahati") or LocationPoint dict
-    destination: Optional[Any] = "agartala" # Can be string ID ("agartala") or LocationPoint dict
+    origin: Optional[str] = "guwahati" # Hub ID string, e.g. "guwahati" (matches frontend NER_NODES keys)
+    destination: Optional[str] = "agartala" # Hub ID string, e.g. "agartala" (matches frontend NER_NODES keys)
     vehicle_type: Optional[str] = "TRUCK" # CAR, TRUCK, AMBULANCE, RELIEF_VEHICLE, 4X4
     priority: Optional[str] = "NORMAL" # NORMAL, EMERGENCY, ESSENTIAL_SUPPLY
     avoid_high_risk: Optional[bool] = True
@@ -60,3 +60,11 @@ class VehicleLocationUpdate(BaseModel):
     latitude: float
     longitude: float
     status: Optional[str] = "IN_TRANSIT"
+
+class RouteScoreRequest(BaseModel):
+    # points: [[lat, lng], ...] sampled from a Google Directions/Routes candidate polyline
+    points: List[List[float]]
+    distance_km: float
+    duration_min: float
+    priority: Optional[str] = "NORMAL"  # NORMAL, EMERGENCY, ESSENTIAL_SUPPLY
+    label: Optional[str] = None  # caller-supplied label (e.g. "Route A") echoed back

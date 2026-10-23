@@ -17,7 +17,12 @@ const MapAIEngine = {
     if (q.includes("route") || q.includes("path") || q.includes("go to") || q.includes("agartala") || q.includes("silchar")) {
       const activeRoute = state.activeRoute;
       if (activeRoute) {
-        return `🤖 **Map AI Advice**: The safest path to ${activeRoute.path[activeRoute.path.length-1].toUpperCase()} is via ${activeRoute.path.join(" ➔ ")}. Estimated ETA: **${activeRoute.totalEta} hrs**, total distance: **${activeRoute.totalDistance} km** with average risk score of **${activeRoute.avgRisk}/100**.`;
+        // activeRoute comes straight from the backend (Dijkstra fallback or Google+SETU-NER
+        // scoring) — it has distance/eta/risk but no client-side "path" array to join, so
+        // describe it from the fields that actually exist rather than a field that never did.
+        const originText = (document.getElementById("originSelect") || {}).value || "Origin";
+        const destText = (document.getElementById("destSelect") || {}).value || "Destination";
+        return `🤖 **Map AI Advice**: The safest route from ${originText} to ${destText} is estimated ETA **${activeRoute.totalEta} hrs**, total distance: **${activeRoute.totalDistance} km** with average risk score of **${activeRoute.avgRisk}/100**.`;
       }
       return "🤖 **Map AI Advice**: Please select an Origin and Destination in the header bar and click 'Optimize Route' to compute the safest path.";
     }

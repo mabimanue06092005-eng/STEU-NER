@@ -8,6 +8,7 @@ from app.models.models import Incident, Road, Alert, Report
 from app.schemas.schemas import IncidentCreateSchema, ReportCreateSchema, DamageAnalyzeRequest
 from app.core.geo_utils import haversine_km
 from app.core.ws_manager import manager
+from app.services.risk_service import RiskEngineService
 
 router = APIRouter()
 
@@ -40,10 +41,7 @@ async def create_incident(inc: IncidentCreateSchema, db: Session = Depends(get_d
         min_d = min(haversine_km(inc.latitude, inc.longitude, pt[0], pt[1]) for pt in coords)
         if min_d <= 15.0:
             r.risk_score = min(r.risk_score + 35.0, 95.0)
-            if r.risk_score >= 71.0 or inc.severity in ["SEVERE", "IMPASSABLE"]:
-                r.current_status = "BLOCKED"
-            elif r.risk_score >= 31.0:
-                r.current_status = "RISKY"
+            r.current_status = "BLOCKED" if inc.severity in ["SEVERE", "IMPASSABLE"] else RiskEngineService.get_risk_status(r.risk_score)
             affected_roads.append({"id": r.id, "name": r.name, "status": r.current_status, "risk_score": r.risk_score})
 
     # Save emergency alert
@@ -95,10 +93,7 @@ async def resolve_incident(id: int, db: Session = Depends(get_db)):
         min_d = min(haversine_km(inc.latitude, inc.longitude, pt[0], pt[1]) for pt in coords)
         if min_d <= 15.0:
             r.risk_score = max(r.risk_score - 30.0, 15.0)
-            if r.risk_score < 31.0:
-                r.current_status = "SAFE"
-            elif r.risk_score < 71.0:
-                r.current_status = "RISKY"
+            r.current_status = RiskEngineService.get_risk_status(r.risk_score)
             affected_roads.append({"id": r.id, "status": r.current_status, "risk_score": r.risk_score})
     db.commit()
 

@@ -30,10 +30,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
-  <!-- Leaflet CSS & JS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-
   <!-- Chart.js for District Dashboard -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -304,9 +300,17 @@
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1 h-full min-h-[500px]">
-            <!-- Leaflet GIS Map Canvas (3 Cols) -->
+            <!-- Google Maps GIS Canvas (3 Cols) -->
             <div class="lg:col-span-3 h-full min-h-[450px] relative rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl bg-slate-900">
               <div id="map" class="absolute inset-0 z-0 bg-slate-950"></div>
+
+              <!-- Shown only when Google Maps JS failed to load/authorize — the app never
+                   falls back to a second map engine, it tells the operator what's wrong. -->
+              <div id="mapUnavailableOverlay" class="absolute inset-0 z-20 hidden flex-col items-center justify-center text-center p-6 bg-slate-950/95 space-y-2">
+                <i class="fa-solid fa-map-location-dot text-3xl text-amber-400"></i>
+                <div class="font-outfit font-bold text-slate-100">Google Maps unavailable</div>
+                <div id="mapUnavailableReason" class="text-xs text-slate-400 max-w-sm"></div>
+              </div>
 
               <!-- COMMAND CENTER OVERLAY: LIVE GIS COUNTERS & LAYER FILTERS -->
               <div class="absolute top-4 left-4 z-10 flex flex-col space-y-2 pointer-events-auto max-w-xs">
@@ -317,7 +321,10 @@
                       <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                       <span>NER Live Command Status</span>
                     </span>
-                    <span id="wsSyncStatus" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">WS LIVE</span>
+                    <div class="flex items-center space-x-1">
+                      <span id="mapProviderBadge" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">MAP: --</span>
+                      <span id="wsSyncStatus" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">WS LIVE</span>
+                    </div>
                   </div>
                   <div class="grid grid-cols-3 gap-1 text-center font-mono text-[10px]">
                     <div class="bg-slate-950 p-1.5 rounded-xl border border-slate-800">
@@ -332,6 +339,24 @@
                       <span class="text-rose-500 font-bold block text-xs" id="kpiBlocked">--</span>
                       <span class="text-[9px] text-slate-400">Blocked</span>
                     </div>
+                  </div>
+                  <div class="grid grid-cols-3 gap-1 text-center font-mono text-[10px]">
+                    <div class="bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+                      <span class="text-indigo-400 font-bold block text-xs" id="kpiAlerts">--</span>
+                      <span class="text-[9px] text-slate-400">Alerts</span>
+                    </div>
+                    <div class="bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+                      <span class="text-cyan-400 font-bold block text-xs" id="kpiVehicles">--</span>
+                      <span class="text-[9px] text-slate-400">Vehicles</span>
+                    </div>
+                    <div class="bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+                      <span class="text-emerald-400 font-bold block text-xs" id="kpiAccessPct">--%</span>
+                      <span class="text-[9px] text-slate-400">Access</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between text-[10px] font-mono pt-1.5 border-t border-slate-800">
+                    <span class="text-slate-400 flex items-center space-x-1"><i class="fa-solid fa-cloud-sun text-amber-400"></i><span id="weatherWidget">Weather: --</span></span>
+                    <span id="connectivityStatus" class="font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">ONLINE</span>
                   </div>
                 </div>
 
@@ -384,6 +409,38 @@
                     <input type="checkbox" id="chkFilterHazards" checked class="accent-amber-500 rounded">
                     <span>Flood / Landslide Polygons</span>
                   </label>
+                </div>
+
+                <!-- OFFLINE EMERGENCY COMMUNICATION QUEUE (Real local STORE->FORWARD queue) -->
+                <div class="bg-slate-900/90 backdrop-blur border border-slate-800 rounded-2xl p-3 shadow-2xl text-white space-y-2 text-[11px]">
+                  <div class="flex items-center justify-between border-b border-slate-800 pb-1">
+                    <span class="font-bold text-[10px] text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+                      <i class="fa-solid fa-tower-broadcast text-cyan-400"></i>
+                      <span>Offline Emergency Queue</span>
+                    </span>
+                    <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">REAL LOCAL</span>
+                  </div>
+                  <select id="offlineMsgType" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-[10px]">
+                    <option value="Landslide">Landslide</option>
+                    <option value="Flood">Flood</option>
+                    <option value="Bridge Damage">Bridge Damage</option>
+                    <option value="Medical">Medical Emergency</option>
+                    <option value="General">General</option>
+                  </select>
+                  <select id="offlineMsgPriority" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-[10px]">
+                    <option value="CRITICAL">Priority: CRITICAL</option>
+                    <option value="HIGH" selected>Priority: HIGH</option>
+                    <option value="NORMAL">Priority: NORMAL</option>
+                  </select>
+                  <input type="text" id="offlineMsgText" maxlength="160" placeholder="Short emergency message…" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-[10px]">
+                  <div class="flex gap-1.5">
+                    <button id="offlineQueueBtn" class="flex-1 bg-cyan-700 hover:bg-cyan-600 text-white font-bold py-1.5 rounded-lg text-[10px]">Queue Message</button>
+                    <button id="offlineSyncBtn" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-1.5 rounded-lg text-[10px]">Sync Now</button>
+                  </div>
+                  <div class="flex items-center justify-between text-[9px] text-slate-400 pt-0.5">
+                    <span id="offlineQueuePendingCount">0 pending</span>
+                    <span id="offlineQueueLastSync">Last sync: never</span>
+                  </div>
                 </div>
               </div>
               
@@ -451,6 +508,21 @@
 
           <div id="predictiveAlertLog" class="p-4 bg-slate-950 text-amber-300 font-mono text-xs rounded-2xl border border-slate-800 shadow-xl leading-relaxed hidden"></div>
 
+          <!-- Live Alerts Feed — real backend data via GET /api/alerts -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-lg space-y-3">
+            <div class="flex items-center justify-between">
+              <h4 class="font-outfit font-bold text-sm text-slate-900 dark:text-white flex items-center space-x-2">
+                <i class="fa-solid fa-tower-broadcast text-emerald-500"></i>
+                <span>Live Alerts Feed</span>
+              </h4>
+              <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">REAL BACKEND</span>
+            </div>
+            <div id="liveAlertsFeed" class="space-y-2 text-xs max-h-64 overflow-y-auto scrollbar-thin">
+              <div class="text-slate-400 text-[11px]">Loading alerts…</div>
+            </div>
+          </div>
+
+          <p class="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Illustrative corridor examples (static) — click "Run Forecast Check" above for a real backend ML prediction</p>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-lg space-y-2">
               <span class="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 font-bold flex items-center justify-center text-sm">NH06</span>
@@ -479,26 +551,27 @@
               
               <!-- Mode Travel Badges (Driving, Truck Logistics, Emergency Ambulance) -->
               <div class="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 font-bold text-slate-700 dark:text-slate-300">
-                <button id="modeDriveBtn" class="route-mode-btn active px-3 py-1.5 rounded-lg bg-indigo-600 text-white flex items-center space-x-1.5 transition">
+                <button id="modeDriveBtn" class="route-mode-btn active px-3 py-1.5 rounded-lg bg-indigo-600 text-white flex items-center space-x-1.5 transition" title="NORMAL — balanced distance/time/risk">
                   <i class="fa-solid fa-car"></i>
-                  <span>Drive</span>
+                  <span>Normal</span>
                 </button>
-                <button id="modeTruckBtn" class="route-mode-btn px-3 py-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center space-x-1.5 transition">
+                <button id="modeTruckBtn" class="route-mode-btn px-3 py-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center space-x-1.5 transition" title="RELIEF DELIVERY — essential supply priority">
                   <i class="fa-solid fa-truck-moving"></i>
-                  <span>Heavy Freight</span>
+                  <span>Relief Delivery</span>
                 </button>
-                <button id="modeEmergencyBtn" class="route-mode-btn px-3 py-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center space-x-1.5 transition">
+                <button id="modeEmergencyBtn" class="route-mode-btn px-3 py-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center space-x-1.5 transition" title="EMERGENCY/RESCUE — safety and medical access prioritized above speed">
                   <i class="fa-solid fa-truck-medical text-rose-500"></i>
-                  <span>Emergency SOS</span>
+                  <span>Emergency / Rescue</span>
                 </button>
               </div>
 
-              <!-- Origin & Destination Hub Selectors -->
+              <!-- Origin & Destination Search (Google Places Autocomplete when Google Maps is
+                   active; free-text hub-name matching otherwise — see resolveHubId in app.js) -->
               <div class="flex items-center space-x-2">
                 <div class="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5">
                   <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                   <span class="font-bold text-slate-500 text-[10px]">A:</span>
-                  <select id="originSelect" class="bg-transparent font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"></select>
+                  <input type="text" id="originSelect" value="Guwahati" placeholder="Origin — town, village, road, hub..." class="bg-transparent font-semibold text-slate-800 dark:text-slate-200 focus:outline-none w-32">
                 </div>
 
                 <button id="swapOriginDestBtn" class="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition">
@@ -508,7 +581,7 @@
                 <div class="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5">
                   <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
                   <span class="font-bold text-slate-500 text-[10px]">B:</span>
-                  <select id="destSelect" class="bg-transparent font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"></select>
+                  <input type="text" id="destSelect" value="Agartala" placeholder="Destination — town, village, road, hub..." class="bg-transparent font-semibold text-slate-800 dark:text-slate-200 focus:outline-none w-32">
                 </div>
               </div>
 
@@ -546,12 +619,20 @@
             
             <!-- Left Side Directions & Route Cards Panel -->
             <div class="lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-xl flex flex-col space-y-4 overflow-hidden">
-              
+
+              <!-- Google Directions/Places API error banner — shown when a Google routing
+                   service call fails (disabled API, quota, etc). Never hidden silently;
+                   the SETU-NER internal route estimate shown below it is clearly labeled. -->
+              <div id="routeApiWarningBanner" class="hidden text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 p-2.5 rounded-xl flex items-start space-x-2">
+                <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+                <span id="routeApiWarningText"></span>
+              </div>
+
               <!-- Primary Safest Route Summary Card -->
               <div class="bg-gradient-to-br from-sky-500/10 via-indigo-500/10 to-blue-600/10 border border-sky-500/30 p-4 rounded-2xl space-y-3 shadow-sm">
                 <div class="flex justify-between items-start">
                   <div>
-                    <span class="text-[10px] font-mono font-bold text-sky-500 uppercase tracking-widest block">RECOMMENDED ROUTE</span>
+                    <span id="routeModeBadge" class="text-[10px] font-mono font-bold text-sky-500 uppercase tracking-widest block">RECOMMENDED ROUTE</span>
                     <h4 id="googleRouteHeaderTitle" class="font-outfit font-extrabold text-base text-slate-900 dark:text-white">Guwahati to Agartala</h4>
                   </div>
                   <span id="routeETA" class="text-xl font-outfit font-extrabold text-emerald-600 dark:text-emerald-400">-- hrs</span>
@@ -572,6 +653,10 @@
                   <span>Corridor Traffic & Monsoon Risk:</span>
                   <span id="routeTrafficBadge" class="font-mono font-bold text-emerald-500">LOW DELAY</span>
                 </div>
+
+                <!-- Why this route was recommended — always generated from actual matched
+                     road/incident/hazard data returned by the backend, never invented text -->
+                <div id="routeExplanationBox" class="text-[11px] text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-slate-950/60 p-2 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 hidden"></div>
               </div>
 
               <!-- Alternate Detour Card -->
@@ -587,6 +672,15 @@
                   <span id="altRouteDist">Distance: -- km</span>
                   <span>Avoids blocked mountain passes</span>
                 </div>
+              </div>
+
+              <!-- Nearby emergency medical facilities along the route (Google Places, when available) -->
+              <div id="nearbyFacilitiesCard" class="bg-slate-100 dark:bg-slate-950 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-1.5 text-xs hidden">
+                <div class="font-bold text-rose-500 flex items-center space-x-1">
+                  <i class="fa-solid fa-hospital"></i>
+                  <span>Nearby Hospitals / Clinics on Route</span>
+                </div>
+                <div id="nearbyFacilitiesList" class="space-y-1"></div>
               </div>
 
               <!-- Turn-by-Turn Directions List -->
@@ -607,7 +701,13 @@
             <!-- Right Large Interactive Google Maps Canvas -->
             <div class="lg:col-span-2 h-full min-h-[450px] relative rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl bg-slate-950">
               <div id="routeMap" class="absolute inset-0 z-0 bg-slate-950"></div>
-              
+
+              <div id="routeMapUnavailableOverlay" class="absolute inset-0 z-20 hidden flex-col items-center justify-center text-center p-6 bg-slate-950/95 space-y-2">
+                <i class="fa-solid fa-map-location-dot text-3xl text-amber-400"></i>
+                <div class="font-outfit font-bold text-slate-100">Google Maps unavailable</div>
+                <div id="routeMapUnavailableReason" class="text-xs text-slate-400 max-w-sm"></div>
+              </div>
+
               <!-- Map Navigation Control Overlay -->
               <div class="absolute bottom-4 right-4 z-10 flex flex-col space-y-2 pointer-events-auto">
                 <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur border border-slate-200 dark:border-slate-800 rounded-2xl p-2 shadow-2xl flex flex-col space-y-1">
@@ -695,8 +795,9 @@
               <div>
                 <span class="text-xs font-mono font-bold text-emerald-500 uppercase tracking-wider block">GPS Telemetry Grid</span>
                 <h2 class="font-outfit font-extrabold text-xl text-slate-900 dark:text-white">Essential Commodities Vehicle Tracking</h2>
+                <p class="text-[10px] text-slate-400 mt-0.5">Vehicle list &amp; last known position: real backend data (/api/vehicles). Movement between updates is driven either by the "Start GPS Vehicle" demo simulator (clearly marked) or by a real device posting its browser GPS position — this fleet has no physical GPS trackers installed.</p>
               </div>
-              <span class="px-3 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-mono font-bold rounded-full">ACTIVE GPS SATELLITE LINK</span>
+              <span class="px-3 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-mono font-bold rounded-full">LIVE BACKEND DATA</span>
             </div>
             <div id="gpsFleetList" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
           </div>
@@ -706,7 +807,10 @@
         <div id="page-f6" class="page-view hidden flex-1 w-full h-full flex flex-col space-y-4">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-              <h3 class="font-outfit font-bold text-lg text-slate-900 dark:text-white">SMS Shortcode Parser Webhook Sandbox</h3>
+              <div class="flex items-center justify-between">
+                <h3 class="font-outfit font-bold text-lg text-slate-900 dark:text-white">SMS Shortcode Parser Webhook Sandbox</h3>
+                <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 shrink-0">SIMULATED — no SMS carrier connected</span>
+              </div>
               <div class="space-y-2 text-xs">
                 <input type="text" id="smsInput" value="BLOCK NH27 KM45 LANDSLIDE" class="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-xs font-mono">
                 <button id="parseSmsBtn" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition shadow">Parse Shortcode</button>
@@ -715,7 +819,10 @@
             </div>
 
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-              <h3 class="font-outfit font-bold text-lg text-slate-900 dark:text-white">Toll-Free IVR Interactive Voice Response Simulator</h3>
+              <div class="flex items-center justify-between">
+                <h3 class="font-outfit font-bold text-lg text-slate-900 dark:text-white">Toll-Free IVR Interactive Voice Response Simulator</h3>
+                <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 shrink-0">SIMULATED</span>
+              </div>
               <div class="grid grid-cols-3 gap-2 max-w-[240px] mx-auto text-center font-mono">
                 <button data-key="1" class="ivr-key bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 p-3 rounded-xl text-sm font-bold">1 (Report)</button>
                 <button data-key="2" class="ivr-key bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 p-3 rounded-xl text-sm font-bold">2 (Status)</button>
@@ -732,9 +839,12 @@
         <!-- FEATURE 7: BLUETOOTH MESH RELAY (Full Page) -->
         <div id="page-f7" class="page-view hidden flex-1 w-full h-full flex flex-col space-y-4">
           <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-            <h2 class="font-outfit font-extrabold text-xl text-slate-900 dark:text-white">Bluetooth BLE Mesh Gossip Relay Protocol</h2>
+            <div class="flex items-center justify-between">
+              <h2 class="font-outfit font-extrabold text-xl text-slate-900 dark:text-white">Bluetooth BLE Mesh Gossip Relay Protocol</h2>
+              <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 shrink-0">SIMULATED — browsers cannot form arbitrary BLE mesh</span>
+            </div>
             <p class="text-xs text-slate-500 max-w-2xl">
-              Simulates store-and-forward peer-to-peer relay across offline mobile devices during complete cell tower failures in remote mountain passes.
+              Simulates store-and-forward peer-to-peer relay across offline mobile devices during complete cell tower failures in remote mountain passes. Real device-to-device relay would require native mobile BLE APIs beyond what a browser exposes; this panel demonstrates the protocol logic. See "Offline Emergency Queue" on the Live Map page for the real local STORE→FORWARD queue that actually works in this browser.
             </p>
             <button id="triggerMeshHopBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs px-6 py-3 rounded-2xl shadow-lg">
               Simulate P2P BLE Relay Hop
@@ -747,9 +857,16 @@
           <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
             <h2 class="font-outfit font-extrabold text-xl text-slate-900 dark:text-white">Vulnerable Population Evacuation Dispatch</h2>
             <p class="text-xs text-slate-500">Cross-references pre-registered elderly, pregnant, and PwD citizens to auto-assign priority ambulances.</p>
-            <button id="optimizeDispatchBtn" class="bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs px-6 py-3 rounded-2xl shadow-lg">
-              Rank Relief Evacuation Queue
-            </button>
+            <div class="flex items-center space-x-2">
+              <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">REAL: /api/vulnerable</span>
+              <span id="vulnerableCountDisplay" class="text-xs font-bold text-slate-700 dark:text-slate-300">Loading registry…</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button id="optimizeDispatchBtn" class="bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs px-6 py-3 rounded-2xl shadow-lg">
+                Rank Relief Evacuation Queue
+              </button>
+              <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">DISPATCH RANKING: DEMO ALGORITHM</span>
+            </div>
           </div>
         </div>
 
@@ -769,7 +886,10 @@
               </form>
             </div>
             <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-3">
-              <h3 class="font-outfit font-bold text-lg text-slate-900 dark:text-white">Registered Volunteer Equipment Pool</h3>
+              <div class="flex items-center justify-between">
+                <h3 class="font-outfit font-bold text-lg text-slate-900 dark:text-white">Registered Volunteer Equipment Pool</h3>
+                <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 shrink-0">LOCAL ONLY — no backend model yet</span>
+              </div>
               <div id="volunteerList" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
             </div>
           </div>
@@ -868,6 +988,12 @@
   </div>
 
   <!-- APPLICATION SCRIPTS -->
+  <!-- Central Frontend API Layer (Phase 3) — all backend HTTP/WS calls go through these -->
+  <script src="src/api/http.js"></script>
+  <script src="src/api/endpoints.js"></script>
+  <script src="src/api/ws.js"></script>
+  <script src="src/map/googleMapsLoader.js"></script>
+  <script src="src/map/googleProvider.js"></script>
   <script src="src/data/ner_graph.js"></script>
   <script src="src/engine/risk_engine.js"></script>
   <script src="src/engine/router.js"></script>
@@ -878,6 +1004,8 @@
   <script src="src/engine/map_ai.js"></script>
   <script src="src/engine/community_pool.js"></script>
   <script src="src/engine/camp_broadcast.js"></script>
+  <script src="src/offline/queue.js"></script>
+  <script src="src/notifications/channels.js"></script>
   <script src="src/app.js"></script>
 
   <!-- PWA Service Worker Registration -->

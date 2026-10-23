@@ -1,9 +1,14 @@
-const CACHE_NAME = 'setu-ner-v1';
+const CACHE_NAME = 'setu-ner-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
   './src/styles.css',
+  './src/api/http.js',
+  './src/api/endpoints.js',
+  './src/api/ws.js',
+  './src/offline/queue.js',
+  './src/notifications/channels.js',
   './src/data/ner_graph.js',
   './src/engine/risk_engine.js',
   './src/engine/router.js',
@@ -11,9 +16,12 @@ const ASSETS_TO_CACHE = [
   './src/engine/mesh_simulator.js',
   './src/engine/dispatch.js',
   './src/engine/sms_ivr.js',
-  './src/app.js',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+  './src/engine/map_ai.js',
+  './src/engine/community_pool.js',
+  './src/engine/camp_broadcast.js',
+  './src/map/googleMapsLoader.js',
+  './src/map/googleProvider.js',
+  './src/app.js'
 ];
 
 self.addEventListener('install', (event) => {

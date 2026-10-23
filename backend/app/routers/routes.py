@@ -1,27 +1,62 @@
 import datetime
 import json
+import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db_conn import get_db
 from app.models.models import Road, Vehicle, RouteRecord, RouteSegmentRecord, RouteHistoryRecord
-from app.schemas.schemas import RouteOptimizeRequest
+from app.schemas.schemas import RouteOptimizeRequest, RouteScoreRequest
 from app.services.routing_service import DijkstraRouterService
+from app.services.route_scoring_service import RouteScoringService
 from app.core.ws_manager import manager
+from app.core.hazard_zones import FLOOD_ZONES, LANDSLIDE_ZONES
 
 router = APIRouter()
+
+# ----------------- GOOGLE-ROUTE RISK SCORING (Phase 3, Part 4) -----------------
+# Google Maps/Directions supplies real route geometry; this endpoint is where SETU-NER's
+# backend applies its own (Phase 2) disaster-intelligence layer to score it. The frontend
+# calls this once per Google candidate route and picks the safest practical one — the
+# backend never receives or needs a Google API key, it only scores whatever polyline
+# points it's given.
+@router.post("/api/routes/score")
+def score_google_route(req: RouteScoreRequest, db: Session = Depends(get_db)):
+    if not req.points or len(req.points) < 2:
+        raise HTTPException(status_code=400, detail="points must contain at least 2 [lat, lng] pairs")
+    result = RouteScoringService.score_route(
+        db=db,
+        points=req.points,
+        distance_km=req.distance_km,
+        duration_min=req.duration_min,
+        priority=req.priority,
+        flood_zones=FLOOD_ZONES["features"],
+        landslide_zones=LANDSLIDE_ZONES["features"]
+    )
+    result["label"] = req.label
+    return result
 
 # ----------------- ROUTING ROUTER -----------------
 @router.post("/api/routes/optimize")
 def optimize_route(req: RouteOptimizeRequest, db: Session = Depends(get_db)):
     roads = db.query(Road).all()
+    # Hub set must match the frontend's origin/destination dropdown (src/data/ner_graph.js
+    # NER_NODES) so every selectable hub is reachable in the backend routing graph. Roads
+    # are wired to hubs by substring-matching each road's name against these keys, so every
+    # hub actually referenced by a seeded road's name must be present here.
     nodes_dict = {
         "guwahati": {"id": "guwahati", "name": "Guwahati Hub"},
         "shillong": {"id": "shillong", "name": "Shillong Hub"},
         "silchar": {"id": "silchar", "name": "Silchar Hub"},
         "agartala": {"id": "agartala", "name": "Agartala Hub"},
-        "kohima": {"id": "kohima", "name": "Kohima Hub"},
         "tezpur": {"id": "tezpur", "name": "Tezpur Hub"},
+        "itanagar": {"id": "itanagar", "name": "Itanagar Hub"},
+        "dimapur": {"id": "dimapur", "name": "Dimapur Hub"},
+        "kohima": {"id": "kohima", "name": "Kohima Hub"},
+        "imphal": {"id": "imphal", "name": "Imphal Hub"},
+        "aizawl": {"id": "aizawl", "name": "Aizawl Hub"},
+        "tawang": {"id": "tawang", "name": "Tawang Hub"},
+        "gangtok": {"id": "gangtok", "name": "Gangtok Hub"},
     }
 
     result = DijkstraRouterService.find_safest_route(
@@ -37,8 +72,11 @@ def optimize_route(req: RouteOptimizeRequest, db: Session = Depends(get_db)):
 
     # Save route calculation to DB for persistence and history tracking
     rec = result
+    # Millisecond timestamp + short random suffix: a plain whole-second timestamp
+    # collides (UNIQUE constraint on routes.id) when two optimize calls land in the
+    # same second, which crashes the request with no persisted route.
     route_db = RouteRecord(
-        id=f"ROUTE-{int(datetime.datetime.utcnow().timestamp())}",
+        id=f"ROUTE-{int(datetime.datetime.utcnow().timestamp() * 1000)}-{uuid.uuid4().hex[:4].upper()}",
         origin=req.origin,
         destination=req.destination,
         vehicle_type=req.vehicle_type,
@@ -52,11 +90,12 @@ def optimize_route(req: RouteOptimizeRequest, db: Session = Depends(get_db)):
     )
     db.add(route_db)
 
-    # Save segments
+    # Save segments (use the real Road.id from the routing result; SEG-{idx} is only
+    # a last-resort fallback if a segment genuinely has no backing road id)
     for idx, seg in enumerate(rec.get("segments", [])):
         seg_db = RouteSegmentRecord(
             route_id=route_db.id,
-            road_id=seg.get("road_name", f"SEG-{idx}"),
+            road_id=seg.get("road_id", f"SEG-{idx}"),
             sequence=idx + 1,
             distance_km=seg.get("distance_km", 0.0),
             risk_score=seg.get("risk_score", 0),

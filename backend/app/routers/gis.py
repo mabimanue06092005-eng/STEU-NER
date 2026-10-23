@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.db_conn import get_db
 from app.models.models import District, Road, Incident, Vehicle, ReliefCamp
 from app.core.geo_utils import haversine_km
+from app.core.hazard_zones import FLOOD_ZONES, LANDSLIDE_ZONES
 
 router = APIRouter()
 
@@ -211,53 +212,13 @@ def get_gis_relief_camps(db: Session = Depends(get_db)):
 
 @router.get("/api/gis/flood-zones")
 def get_gis_flood_zones():
-    # Real Spatial Flood Risk Zones in Brahmaputra and Barak Basins
-    return {
-        "type": "FeatureCollection",
-        "features": [
-            {
-                "type": "Feature",
-                "properties": {"name": "Kaziranga Brahmaputra Flood Basin", "risk_level": "HIGH"},
-                "geometry": {
-                    "type": "Polygon",
-                    "coordinates": [[[93.00, 26.50], [93.60, 26.70], [93.80, 26.55], [93.20, 26.35], [93.00, 26.50]]]
-                }
-            },
-            {
-                "type": "Feature",
-                "properties": {"name": "Barak Valley Lowland Inundation Basin", "risk_level": "MODERATE"},
-                "geometry": {
-                    "type": "Polygon",
-                    "coordinates": [[[92.50, 24.70], [92.90, 24.90], [93.10, 24.75], [92.70, 24.60], [92.50, 24.70]]]
-                }
-            }
-        ]
-    }
+    # Development seed data (not a live authority feed) — see app/core/hazard_zones.py
+    return FLOOD_ZONES
 
 @router.get("/api/gis/landslide-zones")
 def get_gis_landslide_zones():
-    # Real Spatial Landslide Susceptibility Corridors
-    return {
-        "type": "FeatureCollection",
-        "features": [
-            {
-                "type": "Feature",
-                "properties": {"name": "Jaintia Hills Sinking Corridor (NH06)", "risk_level": "CRITICAL"},
-                "geometry": {
-                    "type": "Polygon",
-                    "coordinates": [[[91.90, 25.30], [92.30, 25.55], [92.45, 25.35], [92.00, 25.15], [91.90, 25.30]]]
-                }
-            },
-            {
-                "type": "Feature",
-                "properties": {"name": "Kohima-Dimapur Mudslide Pass (NH29)", "risk_level": "HIGH"},
-                "geometry": {
-                    "type": "Polygon",
-                    "coordinates": [[[93.80, 25.70], [94.20, 25.90], [94.30, 25.75], [93.90, 25.55], [93.80, 25.70]]]
-                }
-            }
-        ]
-    }
+    # Development seed data (not a live authority feed) — see app/core/hazard_zones.py
+    return LANDSLIDE_ZONES
 
 @router.get("/api/gis/summary")
 def get_gis_summary(db: Session = Depends(get_db)):

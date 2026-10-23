@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.db_conn import get_db
 from app.models.models import Road
 from app.services.risk_service import RiskEngineService
+from app.core.ws_manager import manager
 
 router = APIRouter()
 
@@ -27,50 +28,35 @@ def get_road_risk_breakdown(id: str, db: Session = Depends(get_db)):
     if not r:
         raise HTTPException(status_code=404, detail="Road not found")
 
-    # Explainable Formula Risk Component Breakdown:
+    # Explainable Formula Risk Component Breakdown (single authoritative formula,
+    # shared with /api/risk/calculate via RiskEngineService.calculate_road_risk_breakdown):
     # Risk = 35% rainfall + 25% landslide + 15% flood + 15% incident + 10% road condition
-    rainfall_score = min((r.rainfall_mm_last_6h / 100.0) * 100.0, 100.0)
-    landslide_score = 85.0 if "NH06" in r.id or "NH13" in r.id or "NH29" in r.id else 30.0
-    flood_score = 70.0 if "NH27" in r.id or "NH37" in r.id or "NH15" in r.id else 20.0
-    incident_score = 90.0 if r.current_status == "BLOCKED" else (50.0 if r.current_status == "RISKY" else 10.0)
-    road_condition_score = 40.0 if r.bridge_load_limit < 30.0 else 80.0
-
-    weighted_risk = (0.35 * rainfall_score) + (0.25 * landslide_score) + (0.15 * flood_score) + (0.15 * incident_score) + (0.10 * (100 - road_condition_score))
+    result = RiskEngineService.calculate_road_risk_breakdown(r)
 
     return {
         "road_id": r.id,
         "name": r.name,
         "status": r.current_status,
-        "final_risk_score": r.risk_score,
-        "breakdown": {
-            "rainfall_risk": {"weight": "35%", "score": round(rainfall_score, 1), "value": f"{r.rainfall_mm_last_6h} mm/6h"},
-            "landslide_risk": {"weight": "25%", "score": round(landslide_score, 1), "value": "Terrain Susceptibility"},
-            "flood_risk": {"weight": "15%", "score": round(flood_score, 1), "value": "River Basin Inundation"},
-            "incident_risk": {"weight": "15%", "score": round(incident_score, 1), "value": f"Status: {r.current_status}"},
-            "road_condition": {"weight": "10%", "score": round(road_condition_score, 1), "value": f"Bridge Limit: {r.bridge_load_limit}T"}
-        },
+        "final_risk_score": result["final_score"],
+        "breakdown": result["breakdown"],
         "last_updated": r.updated_at.isoformat() if r.updated_at else datetime.datetime.utcnow().isoformat()
     }
 
 @router.post("/api/risk/calculate")
-def recalculate_risks(db: Session = Depends(get_db)):
+async def recalculate_risks(db: Session = Depends(get_db)):
     roads = db.query(Road).all()
     updated_roads = []
     for r in roads:
-        r.risk_score = RiskEngineService.calculate_road_risk(
-            rainfall=r.rainfall_mm_last_6h,
-            terrain_risk=40.0 if "Jaintia" in r.name or "Kohima" in r.name else 15.0,
-            recent_reports=2 if r.current_status == "BLOCKED" else 0,
-            days_since=0.1
-        )
-        if r.risk_score >= 71.0:
-            r.current_status = "BLOCKED"
-        elif r.risk_score >= 31.0:
-            r.current_status = "RISKY"
-        else:
-            r.current_status = "SAFE"
+        result = RiskEngineService.calculate_road_risk_breakdown(r)
+        r.risk_score = result["final_score"]
+        r.current_status = RiskEngineService.get_risk_status(r.risk_score)
         updated_roads.append({"id": r.id, "name": r.name, "risk_score": r.risk_score, "status": r.current_status})
     db.commit()
+
+    # Broadcast so connected clients (map, dashboard) refresh without polling —
+    # every other risk/road mutation in this app already broadcasts; this bulk
+    # recalculation was the one gap (noted at the end of Phase 2).
+    await manager.broadcast("RISK_UPDATED", {"roads": updated_roads})
 
     return {"status": "success", "message": "All highway risk scores dynamically updated.", "roads": updated_roads}
 
